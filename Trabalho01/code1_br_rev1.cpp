@@ -1,12 +1,12 @@
 #include <stdio.h>
 #include <iostream>
 #include <stdlib.h>
-#include <sys/time.h>
 #include <string>
 #include <vector>
 #include <fstream>
 #include <algorithm>
 #include <iomanip>
+#include <chrono>
 /*
     To-Do List:
     [x] - Read file (.net) from terminal
@@ -38,17 +38,23 @@ std::vector<int> degree(std::vector<std::vector<int>> aL)
     */
     size_t len = aL.size();
     std::vector<int> k(len);
+    
+
+    int deg = 0;
 
     for (int i = 0; i < len; i++)
     {
         k[i] = (aL[i].size());
+        
     }
+
+
 
     return k;
 }
 
 
-double rCalc(std::vector<std::vector<int>> aL, std::vector<int> rSet, int n)
+double rCalc(std::vector<std::vector<int>> aL, std::vector<int> rSet, int n, int k)
 {
     /*
         Function that calculates the rich club coefficient of a given aL
@@ -70,7 +76,7 @@ double rCalc(std::vector<std::vector<int>> aL, std::vector<int> rSet, int n)
     double rK;
     if (n <= 1)
     {
-        rK = 1;
+        rK = 1.0;
     }
 
     else
@@ -88,18 +94,23 @@ double rCalc(std::vector<std::vector<int>> aL, std::vector<int> rSet, int n)
             {
                 //Here, we get two numbers, rSet[j] and aL[rSet[i]]. We try to 
                 // 
-                if (std::find(aL[rSet[i]].begin(), aL[rSet[i]].end(), rSet[j]) != aL[rSet[i]].end())
+                if(aL[rSet[i]].size() > k)
                 {
-                    sum += 2.0; 
+                    if (std::find(aL[rSet[i]].begin(), aL[rSet[i]].end(), rSet[j]) != aL[rSet[i]].end())
+                    {
+                        sum += 2.0; 
+                    }
                 }
+                
             }
         }
 
         rK = a * sum;
     }
-    std::cout << "rK " << rK << std::endl;
+    
     return rK;
 }
+
 
 std::vector<double> richClub(std::vector<std::vector<int>> aL, std::vector<int> degree)
 {    
@@ -130,7 +141,7 @@ std::vector<double> richClub(std::vector<std::vector<int>> aL, std::vector<int> 
     //run throught the degrees until k is iqual to maxDegree - 1
     for (int k = 0; k < maxDegree; k++)
     { 
-
+        //auto t1 = std::chrono::high_resolution_clock::now();
         //Starting a fresh set.
         rSet.clear();
         rSetAL.clear();
@@ -142,18 +153,31 @@ std::vector<double> richClub(std::vector<std::vector<int>> aL, std::vector<int> 
             if (degree[l] > k)
             {
                 rSet.push_back(l); //---the index of a entry on the "degree" vector is the node
-                rSetAL.push_back(aL[l]); //--- the adjacence list of all entries of degree k or more
+                rSetAL.push_back(aL[l]); //--- the adjacence list of all entries of degree k or higher
             }
         }
-
-
         
+        // for(int p =0; p<rSetAL.size(); p++)
+        // {   
+        //     for(int c=0; c<rSetAL[p].size(); c++){
+        //         std::cout << rSetAL[p][c] << " ";
+        //     }
+        //     std::cout << std::endl;
+        //}
+        // std::cout << "AL size: " << aL.size() << std::endl;
+        // std::cout << "rSetAL size: " << rSetAL.size() << std::endl;
+        // std::cout << "rSet size: " << rSet.size() << std::endl;
         //getting the cardinality of our set
         int n = rSet.size();
 
         //Calculating the rich club coefficent with the "rCalc" function.
-        double value = rCalc(aL, rSet, n);
+        double value = rCalc(aL, rSet, n, k);
+        //double value = rCalcKPlus(rSetAL, rSet, n);
         rC.push_back(value);
+        // auto t2 = std::chrono::high_resolution_clock::now();
+
+        // auto dif = std::chrono::duration_cast<std::chrono::seconds>(t2 - t1).count();
+        // std::cout << "Elasped time " << dif << " seconds." << std::endl;
         
     }
 
@@ -197,7 +221,7 @@ int main(int argc, char *argv[])
     sparce. This saves memory with the "0" entries.
         
     */
-
+    auto t1 = std::chrono::high_resolution_clock::now();
     std::vector<std::vector<int>> aL(conf[0]);
     //std::vector<std::vector<int>> inputList(conf[1]);
 
@@ -233,6 +257,11 @@ int main(int argc, char *argv[])
         Usign function "richClub".
     */
     std::vector<double> teste = richClub(aL, deg);
+    
+    auto t2 = std::chrono::high_resolution_clock::now();
+
+    auto dif = std::chrono::duration_cast<std::chrono::seconds>(t2 - t1).count();
+    std::cout << "Elasped time " << dif << " seconds." << std::endl;
     
     std::string nameIn = argv[1];
     std::string nameOut = nameIn.replace(nameIn.end()-3,nameIn.end(),"rcb");    
