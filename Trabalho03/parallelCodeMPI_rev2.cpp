@@ -211,6 +211,7 @@ int main(int argc, char *argv[])
     
     std::vector<int> deg;
     std::vector<std::vector<int>> aL(conf0);
+    
 
     int degSize = -1;
     int alSize = -1;
@@ -242,7 +243,30 @@ int main(int argc, char *argv[])
         degSize = deg.size();
         alSize = aL.size();
         alCols = aL[0].size();
+
+        //Transforming the type of the matrix:
+        std::cout<< "Entered allocation section. Process " << rank << std::endl;
         
+        int **originalMat;
+        int *p = (int *)malloc(alSize*alCols*sizeof(int));
+    
+        /* allocate the row pointers into the memory */
+        (*originalMat) = (int *)malloc(alSize*sizeof(int*));
+        
+        /* set up the pointers into the contiguous memory */
+        for (int i=0; i<alSize; i++)
+        {
+            (*originalMat)[i] = (p[i*alCols]);
+        }
+        std::cout<< "Entered copy section. Process " << rank << std::endl;
+        
+        for(int i=0; i<sizeof(originalMat); i++){
+            for(int j=0; j<sizeof(originalMat[i]); j++){
+                originalMat[i][j]=aL[i][j];
+                std::cout<< "Mat original row " << i << " col " << j << " is "  << originalMat[i][j] << std::endl;
+                std::cout<< "Al row " << i << " col " << j << " is "  << aL[i][j] << std::endl;
+            }
+        }
     }
     //Every process that participates on the MPI_COMM_WORLD com., has to call the Bcast.
     //So all of them waits until the process "root" sends the message 
@@ -250,12 +274,36 @@ int main(int argc, char *argv[])
     MPI_Bcast( &alSize , 1 , MPI_INT , 0 , MPI_COMM_WORLD);
     MPI_Bcast( &maxDegSize , 1 , MPI_INT , 0 , MPI_COMM_WORLD);
     MPI_Bcast( &alCols , 1 , MPI_INT , 0 , MPI_COMM_WORLD);
-    //std::cout<< "Process " << rank << " of " << nprocs << " is printing the deg size: "  << degSize << std::endl;
-    //std::cout<< "Process " << rank << " of " << nprocs << " is printing the aL size: "  << alSize << std::endl;
+    //MPI_Bcast(&(array[0][0]), 10*10, MPI_FLOAT, 0, MPI_COMM_WORLD);
     
+    //std::cout<< "Before Mat alocated. Process " << rank << std::endl;
+    
+    /* int **originalMat = (int **)malloc(alSize * sizeof(int*));
+    
+    for(int i = 0; i < alSize; i++)
+    {
+        originalMat[i] = (int *)malloc(alCols * sizeof(int));
+    } */
+    //std::cout<< "Mat alocated. Process " << rank << std::endl;
+    /* allocate the n*m contiguous items */
+   
+    
+    /* if(rank=0){
+        std::cout<< "Entered copy section. Process " << rank << std::endl;
+        
+        for(int i=0; i<sizeof(originalMat); i++){
+            for(int j=0; j<sizeof(originalMat[i]); j++){
+                originalMat[i][j]=aL[i][j];
+                std::cout<< "Mat original row " << i << " col " << j << " is "  << originalMat[i][j] << std::endl;
+                std::cout<< "Al row " << i << " col " << j << " is "  << aL[i][j] << std::endl;
+            }
+        }
+    } */
+
+
     int hmProcs = 0;
     MPI_Comm_size( MPI_COMM_WORLD, &hmProcs);
-    //std::cout<< "Process " << rank << " of " << nprocs << "how many procss "  << hmProcs << std::endl;
+    std::cout<< "Process " << rank << " of " << hmProcs << std::endl;
     
     //Scattering both the vector of degrees and also the aL matrix
 
@@ -315,7 +363,7 @@ int main(int argc, char *argv[])
 
     MPI_Scatterv(&deg[0] , &degCount[0] , &degOffset[0] , MPI_INT , &degData[0] , degCount[rank] , MPI_INT , 0 , MPI_COMM_WORLD);
     
-    MPI_Scatterv(&aL[0][0] , &alCount[0] , &alOffset[0] , line , &alData[0][0] , alCount[rank] , line , 0 , MPI_COMM_WORLD);
+    //MPI_Scatterv(&originalMat[0][0] , &alCount[0] , &alOffset[0] , line , &alData[0][0] , alCount[rank] , line , 0 , MPI_COMM_WORLD);
     
     //std::cout<< "Process " << rank << " of " << hmProcs << " is printing the deg count size: "  << degCount[rank] << std::endl;
     //std::cout<< "Process " << rank << " of " << hmProcs << " is printing the aL count size: "  << alCount[rank] << std::endl;

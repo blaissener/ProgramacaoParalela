@@ -23,9 +23,42 @@ $ mpic++ -O2 parallelCodeMPI_rev1.cpp -o parallelCodeMPI_rev1 && mpirun -oversub
 #include <chrono>
 #include <mpi.h>
 
+
+#ifndef _SIMPLE_MATRIX_
+#define _SIMPLE_MATRIX_
+
+#define DEFMATRIX(type, name)                                                  \
+  typedef struct {                                                             \
+    type *_data;                                                               \
+    size_t nrows, ncols;                                                       \
+  } name;
+
+DEFMATRIX(double, MatrixDouble)
+DEFMATRIX(float, MatrixFloat)
+DEFMATRIX(int, MatrixInt)
+
+typedef MatrixDouble Matrix;
+
+#define IDX(m, i, j) (m)._data[(size_t)(i) * (m).ncols + (size_t)(j)]
+
+#define INIT_MATRIX(mat, nr, nc)                                               \
+  {                                                                            \
+    (mat).nrows = (nr);                                                        \
+    (mat).ncols = (nc);                                                        \
+    (mat)._data = malloc((nr) * (nc) * sizeof((mat)._data[0]));                \
+  }
+
+#define ZERO(m)                                                                \
+  memset((m)._data, 0, (m).nrows *(m).ncols * sizeof((m)._data[0]))
+
+#endif /* _SIMPLE_MATRIX_ */
+
+
 /*
 Functions used in this program
 */
+
+
 
 
 std::vector<int> degree(std::vector<std::vector<int>> aL)
@@ -255,7 +288,7 @@ int main(int argc, char *argv[])
     
     int hmProcs = 0;
     MPI_Comm_size( MPI_COMM_WORLD, &hmProcs);
-    //std::cout<< "Process " << rank << " of " << nprocs << "how many procss "  << hmProcs << std::endl;
+    std::cout<< "Process " << rank << " of " << hmProcs << std::endl;
     
     //Scattering both the vector of degrees and also the aL matrix
 
@@ -298,25 +331,35 @@ int main(int argc, char *argv[])
         // }
     }
 
-    
+    std::cout<< "al data def from process " << rank << std::endl;
 
-    int *degData = (int *)malloc(degCount[rank]*sizeof(int));
+    /* int *degData = (int *)malloc(degCount[rank]*sizeof(int));
     //int *alData = (int *)malloc(alCount[rank]*sizeof(int));
     int **alData = (int **)malloc(alCount[rank] * sizeof(int*));
     
     for(int i = 0; i < alCount[rank]; i++)
     {
         alData[i] = (int *)malloc(alCols * sizeof(int));
-    }
-    
+    } */
+
+    Matrix alData;
+    INIT_MATRIX(alData, int(alCount[rank]), int(alCols));
+
+    std::cout<< "al data DEFINED from process " << rank << std::endl;
+
     MPI_Datatype line;
     MPI_Type_contiguous( alCols , MPI_INT , &line);
     MPI_Type_commit( &line);
 
-    MPI_Scatterv(&deg[0] , &degCount[0] , &degOffset[0] , MPI_INT , &degData[0] , degCount[rank] , MPI_INT , 0 , MPI_COMM_WORLD);
-    
-    MPI_Scatterv(&aL[0][0] , &alCount[0] , &alOffset[0] , line , &alData[0][0] , alCount[rank] , line , 0 , MPI_COMM_WORLD);
-    
+    //MPI_Scatterv(&deg[0] , &degCount[0] , &degOffset[0] , MPI_INT , &degData[0] , degCount[rank] , MPI_INT , 0 , MPI_COMM_WORLD);
+    std::cout<< "Starting scatterv from process " << rank << std::endl;
+    //MPI_Scatterv(&aL[0][0] , &alCount[0] , &alOffset[0] , line , &IDX(alData, 0, 0) , alCount[rank] , line , 0 , MPI_COMM_WORLD);
+    /* for(int i=0; i<sizeof(alData); i++){
+        for (int j=0; j<sizeof(alData[i]);j++){
+            std::cout<< "Al Data "<< alData[i][j] << " from process" << rank << std::endl;
+        }
+    } */
+    std::cout<< "Scatterv DONE process " << rank << std::endl;
     //std::cout<< "Process " << rank << " of " << hmProcs << " is printing the deg count size: "  << degCount[rank] << std::endl;
     //std::cout<< "Process " << rank << " of " << hmProcs << " is printing the aL count size: "  << alCount[rank] << std::endl;
     
