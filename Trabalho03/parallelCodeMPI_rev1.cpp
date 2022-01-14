@@ -24,36 +24,6 @@ $ mpic++ -O2 parallelCodeMPI_rev1.cpp -o parallelCodeMPI_rev1 && mpirun -oversub
 #include <mpi.h>
 
 
-#ifndef _SIMPLE_MATRIX_
-#define _SIMPLE_MATRIX_
-
-#define DEFMATRIX(type, name)                                                  \
-  typedef struct {                                                             \
-    type *_data;                                                               \
-    size_t nrows, ncols;                                                       \
-  } name;
-
-DEFMATRIX(double, MatrixDouble)
-DEFMATRIX(float, MatrixFloat)
-DEFMATRIX(int, MatrixInt)
-
-typedef MatrixDouble Matrix;
-
-#define IDX(m, i, j) (m)._data[(size_t)(i) * (m).ncols + (size_t)(j)]
-
-#define INIT_MATRIX(mat, nr, nc)                                               \
-  {                                                                            \
-    (mat).nrows = (nr);                                                        \
-    (mat).ncols = (nc);                                                        \
-    (mat)._data = malloc((nr) * (nc) * sizeof((mat)._data[0]));                \
-  }
-
-#define ZERO(m)                                                                \
-  memset((m)._data, 0, (m).nrows *(m).ncols * sizeof((m)._data[0]))
-
-#endif /* _SIMPLE_MATRIX_ */
-
-
 /*
 Functions used in this program
 */
@@ -308,9 +278,7 @@ int main(int argc, char *argv[])
     int alQ = alSize/hmProcs;
     int alR = alSize%hmProcs;
 
-    // if(rank == 0){
-    //     std::cout<< q << " " << r << std::endl;
-    // }
+    
     
     
     for (int i=0; i< hmProcs; i++)
@@ -331,7 +299,7 @@ int main(int argc, char *argv[])
         // }
     }
 
-    std::cout<< "al data def from process " << rank << std::endl;
+    //std::cout<< "al data def from process " << rank << std::endl;
 
     /* int *degData = (int *)malloc(degCount[rank]*sizeof(int));
     //int *alData = (int *)malloc(alCount[rank]*sizeof(int));
@@ -342,10 +310,32 @@ int main(int argc, char *argv[])
         alData[i] = (int *)malloc(alCols * sizeof(int));
     } */
 
-    Matrix alData;
-    INIT_MATRIX(alData, int(alCount[rank]), int(alCols));
 
-    std::cout<< "al data DEFINED from process " << rank << std::endl;
+
+    int rows = alCount[rank], cols = alCols;
+    
+    int** matrix = new int*[rows];
+    
+    for (int i = 0; i < rows; ++i){
+        matrix[i] = new int[cols];
+    }    
+
+    for(int i=0; i<rows;i++){
+        for(int j =0; j<cols; j++){
+            matrix[i][j] = i+j;
+        }
+        
+    }
+
+    for(int i=0; i<rows;i++){
+        for(int j =0; j<cols; j++){
+            std::cout << matrix[i][j] << " ";
+        }
+        std::cout << std::endl;
+    }
+
+    for (int i = 0; i < rows; ++i)delete [] matrix[i];
+    delete [] matrix;
 
     MPI_Datatype line;
     MPI_Type_contiguous( alCols , MPI_INT , &line);
